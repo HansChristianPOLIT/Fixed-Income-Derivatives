@@ -699,7 +699,7 @@ def black_swaption_price(sigma,T,K,S,R,type = "call"):
     d1 = (np.log(R/K) + 0.5*sigma**2*T)/(sigma*np.sqrt(T))
     d2 = (np.log(R/K) - 0.5*sigma**2*T)/(sigma*np.sqrt(T))
     if type == 'put':
-        price = S*(K*ndtr(-d2) - R*ndtr(d1))
+        price = S*(K*ndtr(-d2) - R*ndtr(-d1))
     else:
         price = S*(R*ndtr(d1) - K*ndtr(d2))
     return price
