@@ -141,6 +141,40 @@ def f_ns(param,tau):
                 f[m] += a[k]*tau[m]**k*np.exp(-b[k]*tau[m])
     return f
 
+def fit_forward_rate_ns_obj(param,f_star,tau,scaling):
+    """ Fit Forward rates to data for Ho-Lee."""
+    K = int((len(param)-1)/2 - 1)
+    f_inf, a, b = param[0], param[1:1+K+1], param[K+2:K+2+K+1]
+    param_fit = f_inf, a, b
+    M = len(tau)
+    f_fit = f_ns(param_fit,tau) # reference to other function
+    y = 0
+    for m in range(0,M):
+        y += scaling*(f_fit[m] - f_star[m])**2
+    return y
+
+def fit_forward_rate_ns_jac(param,f_star,tau,scaling):
+    N = int((len(param)-1)/2 - 1)
+    param_fit = param[0], param[1:1+N+1], param[N+2:N+2+N+1]
+    M = len(tau)
+    f_fit = f_ns(param_fit,tau)
+    jac = np.zeros([len(param)])
+    for m in range(0,M):
+        jac += scaling*2*(f_fit[m] - f_star[m])*f_ns_jac(param_fit,tau[m])
+    return jac
+
+def fit_forward_rate_ns_hess(param,f_star,tau,scaling):
+    N = int((len(param)-1)/2 - 1)
+    param_fit = param[0], param[1:1+N+1], param[N+2:N+2+N+1]
+    M = len(tau)
+    f_fit = f_ns(param_fit,tau)
+    hess = np.zeros([len(param),len(param)])
+    for m in range(0,M):
+        # f_deriv = fid.f_ns_jac(param_fit,T[m])
+        f_deriv = f_ns_jac(param_fit,tau[m])
+        hess += scaling*2*(f_fit[m] - f_star[m])*f_ns_hess(param_fit,tau[m]) + 2*np.outer(f_deriv,f_deriv)
+    return hess
+
 def f_ns_jac(param,tau):
     f_inf, a, b = param
     N = len(a) - 1
@@ -162,6 +196,7 @@ def f_ns_hess(param,tau):
     return hess
 
 def f_ns_T(param,tau):
+    """ Derivative. """
     if type(tau) == int or type(tau) == float:
         f_inf, a, b = param
         N = len(a)
@@ -179,22 +214,22 @@ def f_ns_T(param,tau):
                 f_T[m] += a[n]*n*tau[m]**(n-1)*np.exp(-b[n]*tau[m]) - a[n]*b[n]*tau[m]**n*np.exp(-b[n]*tau[m])
     return f_T
 
-def theta_ns(param,t):
-    if type(t) == int or type(t) == float:
+def theta_ns(param,tau):
+    if type(tau) == int or type(tau) == float:
         f_inf, a, b, sigma = param
         K = len(a)
-        theta = -a[0]*b[0]*np.exp(-b[0]*t) + sigma**2*t
+        theta = -a[0]*b[0]*np.exp(-b[0]*tau) + sigma**2*tau
         for k in range(1,K):
-            theta += a[k]*k*t**(k-1)*np.exp(-b[k]*t) - a[k]*b[k]*t**k*np.exp(-b[k]*t)
-    elif type(t) == tuple or type(t) == list or type(t) == np.ndarray:
+            theta += a[k]*k*tau**(k-1)*np.exp(-b[k]*tau) - a[k]*b[k]*tau**k*np.exp(-b[k]*tau)
+    elif type(tau) == tuple or type(tau) == list or type(tau) == np.ndarray:
         f_inf, a, b, sigma = param
         K = len(a)
-        M = len(t)
+        M = len(tau)
         theta = np.zeros([M])
         for m in range(0,M):
-            theta[m] = -a[0]*b[0]*np.exp(-b[0]*t[m]) + sigma**2*t[m]
+            theta[m] = -a[0]*b[0]*np.exp(-b[0]*tau[m]) + sigma**2*tau[m]
             for k in range(1,K):
-                theta[m] += a[k]*k*t[m]**(k-1)*np.exp(-b[k]*t[m]) - a[k]*b[k]*t[m]**k*np.exp(-b[k]*t[m])
+                theta[m] += a[k]*k*tau[m]**(k-1)*np.exp(-b[k]*tau[m]) - a[k]*b[k]*tau[m]**k*np.exp(-b[k]*tau[m])
     return theta
 
 ##################
@@ -567,7 +602,9 @@ def short_rate_simul(r0,param,M,T,method = "vasicek"):
 
     return r
 
-# Black Scholes Option pricing
+####################################
+### Black Scholes Option Pricing ###
+####################################
 def bs_price(S, K, T, r, sigma, type = "call"):
     # S: spot price
     # K: strike price
@@ -589,7 +626,7 @@ def bs_vega(S, K, T, r, sigma,type = "call"):
     return vega
 
 def bs_iv(C, S, K, T, r, iv0 = 0.2, max_iter = 200, prec = 1.0e-5):
-    # Impleid Black-Scholes volatility from call otion prices
+    # Impleid Black-Scholes volatility from call option prices
     iv = iv0
     for i in range(0,max_iter):
         price = bs_price(S, K, T, r, iv, type)
@@ -600,7 +637,9 @@ def bs_iv(C, S, K, T, r, iv0 = 0.2, max_iter = 200, prec = 1.0e-5):
         iv += diff/vega  # f(x) / f'(x)
     return iv
 
-# Caplets
+###############
+### Caplets ###
+###############
 def black_caplet_price(sigma,T,R,alpha,p,L,type = "call"):
     d1 = (np.log(L/R) + 0.5*sigma**2*(T-alpha))/(sigma*np.sqrt(T-alpha))
     d2 = (np.log(L/R) - 0.5*sigma**2*(T-alpha))/(sigma*np.sqrt(T-alpha))
@@ -653,7 +692,9 @@ def black_caplet_iv(C,T,R,alpha,p,L, iv0 = 0.2, max_iter = 200, prec = 1.0e-5):
         iv += diff/vega
     return iv
 
-# Swaptions
+#################
+### Swaptions ###
+#################
 def black_swaption_price(sigma,T,K,S,R,type = "call"):
     d1 = (np.log(R/K) + 0.5*sigma**2*T)/(sigma*np.sqrt(T))
     d2 = (np.log(R/K) - 0.5*sigma**2*T)/(sigma*np.sqrt(T))
@@ -762,7 +803,7 @@ def zcb_curve_fit(data_input,interpolation_options = {"method": "linear"},scalin
     data = copy.deepcopy(data_input)
     data_known = []
     libor_data, fra_data, swap_data = [], [], []
-    # Separateing the data and constructing data_known from fixings
+    # Separating the data and constructing data_known from fixings
     for item in data:
         if item["instrument"] == "libor":
             libor_data.append(item)
@@ -771,7 +812,7 @@ def zcb_curve_fit(data_input,interpolation_options = {"method": "linear"},scalin
             fra_data.append(item)
         elif item["instrument"] == "swap":
             swap_data.append(item)
-    # Adding elements to data_knwon based on FRAs
+    # Adding elements to data_known based on FRAs
     I_done = False
     while I_done == False:
         for fra in fra_data:
@@ -845,7 +886,7 @@ def zcb_curve_fit(data_input,interpolation_options = {"method": "linear"},scalin
             elif I_fra_exer is True and I_endo_exer is True:
                 T_fra.pop(idx_fra_exer)
     fra_data.reverse()
-    # Fitting the swap portino of the curve
+    # Fitting the swap portion of the curve
     T_swap_fit = T_known + T_swap + T_knot
     T_swap_fit.sort(), T_fra.sort(), T_endo.sort()
     R_knot_init = [None]*len(swap_data)
