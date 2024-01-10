@@ -54,11 +54,11 @@ def zcb_to_forward_LIBOR_rates(T,p,horizon = 1):
 
 def zcb_to_accrual_factor(T_n,T_N,fixed_freq,T,p):
     if fixed_freq == "quarterly":
-        p_fix = np.zeros([int(T_N-T_n)*4])
-        T_fix = np.array([T_n + i*0.25 for i in range(1,int(T_N-T_n)*4 + 1)])
+        p_fix = np.zeros([int((T_N-T_n)*4)])
+        T_fix = np.array([T_n + i*0.25 for i in range(1,int((T_N-T_n)*4) + 1)])
     elif fixed_freq == "semiannual":
-        p_fix = np.zeros([int(T_N-T_n)*2])
-        T_fix = np.array([T_n + i*0.5 for i in range(1,int(T_N-T_n)*2 + 1)])
+        p_fix = np.zeros([int((T_N-T_n)*2)])
+        T_fix = np.array([T_n + i*0.5 for i in range(1,int((T_N-T_n)*2) + 1)])
     elif fixed_freq == "annual":
         p_fix = np.zeros([int(T_N-T_n)])
         T_fix = np.array([T_n + i*0.25 for i in range(1,int(T_N-T_n) + 1)])
@@ -69,7 +69,7 @@ def zcb_to_accrual_factor(T_n,T_N,fixed_freq,T,p):
             T_fix[i] = T[idx_fix]
             p_fix[i] = p[idx_fix]
             if i == 0:
-                S += T_fix[i]*p_fix[i]
+                S += (T_fix[i]-T_n)*p_fix[i]
             else:
                 S += (T_fix[i]-T_fix[i-1])*p_fix[i]
     return S
