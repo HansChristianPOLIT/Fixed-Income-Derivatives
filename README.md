@@ -1,13 +1,6 @@
 # Fixed-Income-Derivatives
 
 ## To Do 
-
-- Vasicek 
 - CIR
-- HO-Lee
-
+- HO-Lee PnL
 - SABR 
-- Nelson-Siegel
-- Nelson-Siegel-Svensson
-
-- Implied Volatility
