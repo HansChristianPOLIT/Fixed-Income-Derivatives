@@ -258,7 +258,7 @@ def spot_rate_vasicek(r0,a,b,sigma,tau):
     # See Vasicek in OneNote
     if type(tau) == int or type(tau) == float:
         B = (1/a)*(1-np.exp(-a*tau))
-        A = (B-tau)*(a*b-0.5*sigma**2)/(a**2)-(sigma**2*B)/(4*a)
+        A = (B-tau)*(a*b-0.5*sigma**2)/(a**2)-(sigma**2*B**2)/(4*a)
         if tau < 1e-6:
             r = 0
         elif tau >= 1e-6:
@@ -268,7 +268,7 @@ def spot_rate_vasicek(r0,a,b,sigma,tau):
         r = np.zeros([M])
         for i in range(0,M):
             B = (1/a)*(1-np.exp(-a*tau[i]))
-            A = (B-tau[i])*(a*b-0.5*sigma**2)/(a**2)-(sigma**2*B)/(4*a)
+            A = (B-tau[i])*(a*b-0.5*sigma**2)/(a**2)-(sigma**2*B**2)/(4*a)
             if tau[i] < 1e-6:
                 r[i] = 0
             else:
@@ -389,6 +389,11 @@ def fit_vasicek_no_sigma_obj(param,sigma,R_star,T,scaling = 1):
     return y
 
 def euro_option_price_vasicek(K,T,U,p_T,p_U,a,sigma,type = "call"):
+    """ Pricing caplet for European Option. 
+    
+    Parameters:
+    a (float): rate of reversion
+    """
     sigma_p = (sigma/a)*(1-np.exp(-a*(U-T)))*np.sqrt((1-np.exp(-2*a*T))/(2*a))
     d1 = (np.log(p_U/(p_T*K)))/sigma_p + 0.5*sigma_p
     d2 = d1 - sigma_p
