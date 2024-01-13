@@ -1,6 +1,5 @@
 # Fixed-Income-Derivatives
 
 ## To Do 
-- CIR
-- HO-Lee PnL
+- Curve Fitting PnL
 - SABR 
