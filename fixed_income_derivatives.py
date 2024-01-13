@@ -4,6 +4,8 @@ from scipy.stats import norm, ncx2
 from scipy.optimize import minimize
 from numpy.polynomial.hermite import hermfit, hermval, hermder
 import copy
+# set global seed
+np.random.seed(2024)
 
 def spot_rates_to_zcb(T,spot_rate):
     M = len(T)
@@ -16,6 +18,7 @@ def spot_rates_to_zcb(T,spot_rate):
     return p
 
 def zcb_to_spot_rates(T,p):
+    """ Find term structure / yield curve."""
     M = len(T)
     R = np.zeros([M])
     for i in range(0,M):
@@ -28,7 +31,7 @@ def zcb_to_spot_rates(T,p):
 def zcb_to_forward_rates(T,p,horizon = 1):
     # horizon = 0 corresponds to instantaneous forward rates
     M = len(T)
-    f = np.zeros([M])
+    f = np.zeros([M]) # The forward rate from time 0 to the first time period is just the spot rate at that first time period.
     if horizon == 0:
         f[0] = (np.log(p[0])-np.log(p[1]))/(T[1]-T[0])
         f[-1] = (np.log(p[-2])-np.log(p[-1]))/(T[-1]-T[-2])
