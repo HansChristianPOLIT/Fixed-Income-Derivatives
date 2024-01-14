@@ -4,8 +4,6 @@ from scipy.stats import norm, ncx2
 from scipy.optimize import minimize
 from numpy.polynomial.hermite import hermfit, hermval, hermder
 import copy
-# set global seed
-np.random.seed(2024)
 
 def spot_rates_to_zcb(T,spot_rate):
     M = len(T)
@@ -64,7 +62,7 @@ def zcb_to_accrual_factor(T_n,T_N,fixed_freq,T,p):
         T_fix = np.array([T_n + i*0.5 for i in range(1,int((T_N-T_n)*2) + 1)])
     elif fixed_freq == "annual":
         p_fix = np.zeros([int(T_N-T_n)])
-        T_fix = np.array([T_n + i*0.25 for i in range(1,int(T_N-T_n) + 1)])
+        T_fix = np.array([T_n + i for i in range(1,int(T_N-T_n) + 1)])
     S = 0
     for i in range(0,len(T_fix)):
         I_fix, idx_fix = value_in_list_returns_I_idx(T_fix[i],T)
@@ -217,22 +215,22 @@ def f_ns_T(param,tau):
                 f_T[m] += a[n]*n*tau[m]**(n-1)*np.exp(-b[n]*tau[m]) - a[n]*b[n]*tau[m]**n*np.exp(-b[n]*tau[m])
     return f_T
 
-def theta_ns(param,tau):
-    if type(tau) == int or type(tau) == float:
+def theta_ns(param,t):
+    if type(t) == int or type(t) == float:
         f_inf, a, b, sigma = param
         K = len(a)
-        theta = -a[0]*b[0]*np.exp(-b[0]*tau) + sigma**2*tau
+        theta = -a[0]*b[0]*np.exp(-b[0]*t) + sigma**2*t
         for k in range(1,K):
-            theta += a[k]*k*tau**(k-1)*np.exp(-b[k]*tau) - a[k]*b[k]*tau**k*np.exp(-b[k]*tau)
-    elif type(tau) == tuple or type(tau) == list or type(tau) == np.ndarray:
+            theta += a[k]*k*t**(k-1)*np.exp(-b[k]*t) - a[k]*b[k]*t**k*np.exp(-b[k]*t)
+    elif type(t) == tuple or type(t) == list or type(t) == np.ndarray:
         f_inf, a, b, sigma = param
         K = len(a)
-        M = len(tau)
+        M = len(t)
         theta = np.zeros([M])
         for m in range(0,M):
-            theta[m] = -a[0]*b[0]*np.exp(-b[0]*tau[m]) + sigma**2*tau[m]
+            theta[m] = -a[0]*b[0]*np.exp(-b[0]*t[m]) + sigma**2*t[m]
             for k in range(1,K):
-                theta[m] += a[k]*k*tau[m]**(k-1)*np.exp(-b[k]*tau[m]) - a[k]*b[k]*tau[m]**k*np.exp(-b[k]*tau[m])
+                theta[m] += a[k]*k*t[m]**(k-1)*np.exp(-b[k]*t[m]) - a[k]*b[k]*t[m]**k*np.exp(-b[k]*t[m])
     return theta
 
 ##################
@@ -604,7 +602,7 @@ def short_rate_simul(r0,param,M,T,method = "vasicek"):
         for m in range(1,M+1):
             param_theta = (f_inf, a, b, sigma)
             theta = theta_ns(param_theta,m*delta)
-            r[m] = r[m-1] + theta*delta + sigma*np.sqrt(delta*r[m-1])*Z[m-1]        
+            r[m] = r[m-1] + theta*delta + sigma*np.sqrt(delta*r[m-1])*Z[m-1]    
     else:
         raise ValueError(f"Method '{method}' is not supported. Choose 'vasicek', 'cir', or 'ho_lee_ns'.")
 
@@ -758,7 +756,7 @@ def black_swaption_smm_price(sigma,K,S,R,type = "call"):
     d1 = (np.log(R/K) + 0.5*sigma**2)/sigma
     d2 = (np.log(R/K) - 0.5*sigma**2)/sigma
     if type == 'put':
-        price = S*(K*ndtr(-d2) - R*ndtr(d1))
+        price = S*(K*ndtr(-d2) - R*ndtr(-d1))
     else:
         price = S*(R*ndtr(d1) - K*ndtr(d2))
     return price
@@ -811,7 +809,7 @@ def zcb_curve_fit(data_input,interpolation_options = {"method": "linear"},scalin
     data = copy.deepcopy(data_input)
     data_known = []
     libor_data, fra_data, swap_data = [], [], []
-    # Separating the data and constructing data_known from fixings
+    # Separateing the data and constructing data_known from fixings
     for item in data:
         if item["instrument"] == "libor":
             libor_data.append(item)
@@ -820,7 +818,7 @@ def zcb_curve_fit(data_input,interpolation_options = {"method": "linear"},scalin
             fra_data.append(item)
         elif item["instrument"] == "swap":
             swap_data.append(item)
-    # Adding elements to data_known based on FRAs
+    # Adding elements to data_knwon based on FRAs
     I_done = False
     while I_done == False:
         for fra in fra_data:
@@ -894,7 +892,7 @@ def zcb_curve_fit(data_input,interpolation_options = {"method": "linear"},scalin
             elif I_fra_exer is True and I_endo_exer is True:
                 T_fra.pop(idx_fra_exer)
     fra_data.reverse()
-    # Fitting the swap portion of the curve
+    # Fitting the swap portino of the curve
     T_swap_fit = T_known + T_swap + T_knot
     T_swap_fit.sort(), T_fra.sort(), T_endo.sort()
     R_knot_init = [None]*len(swap_data)
