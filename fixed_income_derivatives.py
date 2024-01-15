@@ -698,9 +698,9 @@ def black_caplet_iv(C,T,R,alpha,p,L, iv0 = 0.2, max_iter = 200, prec = 1.0e-5):
         iv += diff/vega
     return iv
 
-#################
-### Swaptions ###
-#################
+###########################
+### Swaptions  & Greeks ###
+###########################
 def black_swaption_price(sigma,T,K,S,R,type = "call"):
     d1 = (np.log(R/K) + 0.5*sigma**2*T)/(sigma*np.sqrt(T))
     d2 = (np.log(R/K) - 0.5*sigma**2*T)/(sigma*np.sqrt(T))
